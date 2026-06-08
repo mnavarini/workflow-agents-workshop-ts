@@ -15,7 +15,7 @@
 import { runLoop } from './loop.js'
 import { resolveClient } from './model.js'
 import { createLogger } from './logger.js'
-import { resolveTools } from './tools.js'
+import { resolveTools } from './tool-registry.js'
 import type { Agent, AgentDefinition, AgentInput, AgentResult, RunContext, ToolContext } from './types.js'
 
 export function defineAgent(def: AgentDefinition): Agent {

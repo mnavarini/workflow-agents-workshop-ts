@@ -23,8 +23,8 @@ prepareDiff → filterDiff → [ security ‖ performance ‖ ux? ] → judge
 - `resolveClient` / `resolveModelSpec` / `MODEL_TIERS` — provider-agnostic model
   client over `fetch` (Anthropic + OpenAI), with a deterministic **mock** client
   when no API key is set (or `AGENT_MODEL=mock`).
-- Tools: `defineTool`, `defineMcpSource`, `TOOL_REGISTRY`, `registerTool`,
-  `resolveTools` — import-and-register local tools and MCP sources.
+- Tools: `defineTool`, `defineMcpSource`, `getToolRegistry`, `loadTools`,
+  `registerTool`, `resolveTools` — drop a file in `src/tools/` to register.
 
 ## Layout
 
@@ -38,7 +38,8 @@ src/
   model-tiers.ts   small/medium/large → concrete models
   prepareDiff.ts   GitHub PR → Patch[]
   filterDiff.ts    noise filtering + break-glass
-  tool.ts / tools.ts   tool + MCP registry
+  tool.ts / tool-registry.ts   tool helpers + auto-discovered registry
+  tools/             one file per tool (auto-discovered by loader.ts)
   types.ts         shared contracts
   index.ts         public surface
 ```

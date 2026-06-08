@@ -25,7 +25,7 @@ cite what you actually see in the patch. If you find nothing, say so explicitly.
 export const securityReviewer: Agent = defineAgent({
   name: 'security',
   model: resolveModelSpec('medium'),
-  tools: ['current_time'],
+  tools: ['scan_for_secrets'],
   systemPrompt: `# Security reviewer
 
 You review a pull request's per-file patches. Stay strictly within your specialty;
@@ -36,12 +36,16 @@ unsafe deserialization, SSRF, path traversal, and dependency risk. Do not commen
 on style, performance, or naming. Do not block on theoretical issues without a
 concrete exploit path.
 
+Use \`scan_for_secrets\` on any snippet that might contain credentials before
+filing a finding about secret exposure.
+
 ${FINDING_FORMAT}`,
 })
 
 export const performanceReviewer: Agent = defineAgent({
   name: 'performance',
   model: resolveModelSpec('medium'),
+  tools: ['diff_stats'],
   systemPrompt: `# Performance reviewer
 
 You review a pull request's per-file patches. Stay strictly within your specialty;
@@ -51,12 +55,16 @@ Focus exclusively on performance: N+1 queries, unnecessary work in hot paths,
 unbounded memory growth, blocking I/O on request paths, missing indexes, and
 quadratic loops. Do not comment on security, style, or naming.
 
+Use \`diff_stats\` on large or suspicious hunks to quantify the size of a change
+before commenting on hot-path impact.
+
 ${FINDING_FORMAT}`,
 })
 
 export const uxReviewer: Agent = defineAgent({
   name: 'ux',
   model: resolveModelSpec('medium'),
+  tools: ['contrast_ratio'],
   systemPrompt: `# UX reviewer
 
 You review a pull request's per-file patches. Stay strictly within your specialty;
@@ -66,6 +74,9 @@ Focus exclusively on user-facing quality of frontend changes: accessibility
 (labels, roles, keyboard/focus handling, contrast), loading/empty/error state
 coverage, and interaction clarity. Only comment on UI/UX concerns. Do not comment
 on security, performance, or backend logic.
+
+Use \`contrast_ratio\` when the diff changes text or background colors to verify
+WCAG contrast before filing an accessibility finding.
 
 ${FINDING_FORMAT}`,
 })

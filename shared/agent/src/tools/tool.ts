@@ -9,7 +9,7 @@
  * is imported lazily (via a non-literal specifier) so the base package neither
  * requires it nor fails to typecheck without it.
  */
-import type { Tool, ToolResult, ToolSource } from './types.js'
+import type { Tool, ToolResult, ToolSource } from '../types.js'
 
 export function defineTool(tool: Tool): Tool {
   return tool

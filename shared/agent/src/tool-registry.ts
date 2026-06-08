@@ -1,35 +1,40 @@
 /**
- * The tool registry — extend it by importing a module and adding a line.
+ * Tool registry — auto-discovered from `tools/` on first use.
  *
  * Entries are either local tools (`defineTool`) or sources with a lifecycle
  * (`defineMcpSource`). Agents reference entries by id in their `tools` array;
  * `resolveTools()` (called inside `agent.run()`) connects any sources, flattens
  * everything into the tool list the loop consumes, and returns a `close()` that
  * tears connections down.
+ *
+ * To add a tool: drop a new `.ts` file in `tools/` with a default export.
  */
-import { defineTool } from './tool.js'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { loadTools } from './tools/loader.js'
 import type { RegistryEntry, Tool, ToolContext } from './types.js'
 
-const currentTime = defineTool({
-  name: 'current_time',
-  description: 'Get the current time as an ISO 8601 UTC string.',
-  inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-  async invoke() {
-    return { content: new Date().toISOString() }
-  },
-})
+const TOOLS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'tools')
 
-/**
- * Registered tools and MCP sources. To add a tool: write a module with
- * `defineTool(...)` and push it here. To add an MCP server: `defineMcpSource(...)`
- * and push it here, then list its id in an agent's `tools`.
- */
-export const TOOL_REGISTRY: RegistryEntry[] = [currentTime]
+const extraTools: RegistryEntry[] = []
+let registryPromise: Promise<RegistryEntry[]> | undefined
 
-const byId = (): Map<string, RegistryEntry> => new Map(TOOL_REGISTRY.map((e) => [entryId(e), e]))
+async function ensureRegistry(): Promise<RegistryEntry[]> {
+  if (!registryPromise) {
+    registryPromise = loadTools(TOOLS_DIR).then((discovered) => [...discovered, ...extraTools])
+  }
+  return registryPromise
+}
 
+/** All registered tools and MCP sources (loads from disk on first call). */
+export async function getToolRegistry(): Promise<readonly RegistryEntry[]> {
+  return ensureRegistry()
+}
+
+/** Register an extra tool at runtime (merged after auto-discovered tools). */
 export function registerTool(entry: RegistryEntry): void {
-  TOOL_REGISTRY.push(entry)
+  extraTools.push(entry)
+  registryPromise = undefined
 }
 
 function entryId(entry: RegistryEntry): string {
@@ -47,7 +52,7 @@ export interface ResolvedTools {
 
 /** Resolve declared tool/source ids into a flat tool list + a combined close(). */
 export async function resolveTools(ids: readonly string[], ctx: ToolContext): Promise<ResolvedTools> {
-  const registry = byId()
+  const registry = new Map((await ensureRegistry()).map((e) => [entryId(e), e]))
   const tools: Tool[] = []
   const closers: Array<() => Promise<void>> = []
 
